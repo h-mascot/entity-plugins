@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  discord-entity-linker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: discord-entity-linker
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: discord-entity-linker/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+  plugin-structure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate plugin directories
+        run: |
+          set -euo pipefail
+          test -s README.md
+          test -s discord-entity-linker/README.md
+          test -s entity-plugin-acp/provider.ts
+          test -s entity-plugin-codex/codex.ts
+          test -s entity-plugin-symphony/entity.ex
+          for script in */install.sh; do
+            bash -n "$script"
+          done
